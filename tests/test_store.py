@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from app.store import Store
 
 
@@ -28,3 +30,17 @@ def test_reingest_is_idempotent_no_duplicate_chunks():
 
 def test_query_empty_store_returns_nothing():
     assert _store().query("anything") == []
+
+
+def test_embed_model_conflict_raises_clear_error(monkeypatch):
+    """Chroma raises an opaque ValueError when a persisted index is reopened with a
+    different embedding model; Store must translate it into actionable guidance."""
+    import app.store as store_mod
+
+    class _ConflictingClient:
+        def get_or_create_collection(self, *a, **k):
+            raise ValueError("An embedding function already exists in the collection")
+
+    monkeypatch.setattr(store_mod.chromadb, "EphemeralClient", lambda: _ConflictingClient())
+    with pytest.raises(RuntimeError, match="clear CHROMA_PATH"):
+        Store(persistent=False, collection="ragops", embed_model="hash-8")

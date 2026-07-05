@@ -39,7 +39,10 @@ def _alias_matches(answer_canon: str, alias: str) -> bool:
         opt = opt.strip()
         if not opt:
             continue
-        if re.search(rf"(?<![\w.]){re.escape(opt)}(?![\w.])", answer_canon):
+        # Boundaries: not glued to a word char on either side, and not the head of a
+        # decimal (so "99" rejects "99.9"/"499") — but a trailing sentence period is a
+        # delimiter, so "AES-256." and "99." still match.
+        if re.search(rf"(?<![\w.]){re.escape(opt)}(?!\w)(?!\.\d)", answer_canon):
             return True
     return False
 
@@ -53,7 +56,7 @@ def answer_correct(answer: str, aliases: list[str]) -> bool:
 
 
 REFUSAL_MARKERS = ["i don't know", "i do not know", "not contained in the context",
-                   "no context", "cannot answer", "not in the provided context"]
+                   "not in the provided context", "cannot answer", "unable to answer"]
 
 
 def is_refusal(answer: str) -> bool:

@@ -82,9 +82,18 @@ class Store:
             self._client = chromadb.PersistentClient(path=path or settings.chroma_path)
         else:
             self._client = chromadb.EphemeralClient()      # tests only
-        self._collection = self._client.get_or_create_collection(
-            collection or settings.collection, embedding_function=self._ef,
-            metadata={"embed_model": model})
+        name = collection or settings.collection
+        try:
+            self._collection = self._client.get_or_create_collection(
+                name, embedding_function=self._ef, metadata={"embed_model": model})
+        except ValueError as exc:
+            # An existing index built with a different embedding model can't be reused —
+            # turn Chroma's opaque conflict into actionable guidance instead of a crash.
+            raise RuntimeError(
+                f"Collection '{name}' at this CHROMA_PATH was built with a different "
+                f"embedding model than EMBED_MODEL={model!r}. Embeddings can't be mixed in "
+                f"one index — clear CHROMA_PATH to re-index, or set EMBED_MODEL back."
+            ) from exc
 
     def ingest_document(self, text: str, source: str,
                         size: int | None = None) -> int:

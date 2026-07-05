@@ -21,6 +21,20 @@ def test_numeric_alias_respects_word_boundary():
     assert metrics.answer_correct("The Team plan costs 99 dollars", ["99"])
 
 
+def test_alias_matches_at_end_of_sentence():
+    # A correct answer that ends a sentence must still match (trailing period is a
+    # delimiter, not part of the token) — otherwise L3 answer accuracy is deflated.
+    assert metrics.answer_correct("All data is encrypted with AES-256.", ["AES-256"])
+    assert metrics.answer_correct("It costs 99.", ["99"])
+    assert metrics.answer_correct("Use TLS 1.3.", ["TLS 1.3"])
+    assert metrics.answer_correct("Config lives in meridian.yaml.", ["meridian.yaml"])
+
+
+def test_numeric_alias_still_rejects_decimal_continuation():
+    # ...but "99" must NOT match inside a decimal like "99.9".
+    assert not metrics.answer_correct("uptime is 99.9 percent", ["99"])
+
+
 def test_all_alias_groups_required():
     assert metrics.answer_correct("three failures in 90 seconds", ["3|three", "90"])
     assert not metrics.answer_correct("three failures", ["3|three", "90"])
