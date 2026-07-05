@@ -1,0 +1,28 @@
+$ python -m eval.retrieval_gate        # clean pipeline on main
+{
+  "recall_at_1": 0.8421,
+  "recall_at_1_wilson_lb": 0.6958,
+  "recall_at_k": 1.0,
+  "mrr": 0.9167,
+  "recall_1_hits": 32,
+  "n_answerable": 38,
+  "top_k": 4
+}
+RETRIEVAL GATE PASSED (thresholds {'recall_at_1_wilson_lb': 0.55, 'recall_at_k': 0.9})
+$ echo $?
+0
+
+$ TOP_K=1 python -m eval.retrieval_gate   # 'perf: retrieve fewer chunks' — a silent regression
+  recall_at_k = 0.8421 < 0.9
+RETRIEVAL GATE FAILED: ['recall_at_k']
+{
+  "recall_at_1": 0.8421,
+  "recall_at_1_wilson_lb": 0.6958,
+  "recall_at_k": 0.8421,
+  "mrr": 0.8421,
+  "recall_1_hits": 32,
+  "n_answerable": 38,
+  "top_k": 1
+}
+$ echo $?
+1

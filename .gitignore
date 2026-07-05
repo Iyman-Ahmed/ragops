@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+mlruns/
+chroma_db/
+.pytest_cache/
+.ruff_cache/
+*.tar.gz
+.DS_Store
+CLAUDE.md

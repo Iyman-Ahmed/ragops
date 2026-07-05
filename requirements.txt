@@ -1,0 +1,13 @@
+# Pinned to versions verified to install and run on Python 3.12 AND 3.14.
+# (The original mlflow==2.16.2 pulled a pyarrow with no cp314 wheel and failed to build;
+# these pins install cleanly on a current interpreter — see README "Reproducibility".)
+fastapi==0.139.0
+uvicorn[standard]==0.50.0
+pydantic==2.13.4
+openai==2.44.0
+chromadb==1.5.9
+mlflow==3.14.0
+prometheus-client==0.25.0
+pytest==9.1.1
+httpx==0.28.1
+ruff==0.15.20

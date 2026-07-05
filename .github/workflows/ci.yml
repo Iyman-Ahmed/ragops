@@ -1,0 +1,90 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 7 * * 1"      # weekly: re-run gate calibration (evaluate the eval)
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Tests (pytest, offline)
+        run: pytest
+
+  # THE CENTERPIECE. Deterministic retrieval quality gate — no LLM, no secrets, so it runs
+  # on every PR including forks. Fails the build when recall regresses below threshold.
+  retrieval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/chroma
+          key: chroma-onnx-minilm-l6-v2
+      - name: Retrieval quality gate (fails build on regression)
+        run: python -m eval.retrieval_gate
+      - name: Upload MLflow run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: {name: mlruns-retrieval, path: mlruns/, if-no-files-found: ignore}
+
+  # Generation quality gate. Blocks when an LLM endpoint is configured; otherwise prints a
+  # loud DISARMED banner and passes (never a silent skip). Set repo variable LLM_BASE_URL
+  # (and secret LLM_API_KEY) to arm it against a reachable OpenAI-compatible endpoint.
+  answer-gate:
+    runs-on: ubuntu-latest
+    needs: retrieval-gate
+    env:
+      LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with: {path: ~/.cache/chroma, key: chroma-onnx-minilm-l6-v2}
+      - name: Generation quality gate (loud-disarm when no endpoint)
+        run: python -m eval.answer_gate
+
+  calibrate:
+    # Evaluate the eval: prove the gate still fires on seeded regressions (nightly/weekly).
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with: {path: ~/.cache/chroma, key: chroma-onnx-minilm-l6-v2}
+      - name: Gate calibration (TPR/FPR)
+        run: python -m eval.calibrate
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t ragops:${{ github.sha }} .

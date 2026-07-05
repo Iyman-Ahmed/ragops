@@ -1,0 +1,34 @@
+# Alerts that watch for the failure modes this service actually has. Monitoring that
+# monitors something — each rule maps to a metric emitted in app/observability.py.
+groups:
+  - name: ragops
+    rules:
+      # The RAG-specific signal: queries answered with ZERO retrieved context are the
+      # in-production shadow of a retrieval regression (the eval gate catches it pre-merge;
+      # this catches it if a bad corpus/config still ships).
+      - alert: HighZeroContextRate
+        expr: |
+          sum(rate(ragops_contexts_retrieved_bucket{le="0"}[5m]))
+            / sum(rate(ragops_contexts_retrieved_count[5m])) > 0.10
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Over 10% of queries retrieved no context in the last 5m"
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(ragops_requests_total{status="error"}[5m]))
+            / sum(rate(ragops_requests_total[5m])) > 0.05
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "Request error rate above 5% over 5m"
+
+      - alert: HighQueryLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(ragops_latency_seconds_bucket{endpoint="query"}[5m])) by (le)) > 2
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "p95 query latency above 2s over 5m"

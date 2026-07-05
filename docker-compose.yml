@@ -1,0 +1,24 @@
+# Local stack: the RAG service + Prometheus scraping its /metrics and loading alert rules.
+services:
+  ragops:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:1234/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-not-needed}
+      - CHROMA_PATH=/data/chroma
+    volumes:
+      # Persist the vector index so /ingest survives `docker compose restart`.
+      - ragops-chroma:/data/chroma
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+    depends_on: [ragops]
+
+volumes:
+  ragops-chroma:
