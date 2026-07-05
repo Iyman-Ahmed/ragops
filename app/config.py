@@ -23,8 +23,10 @@ class Settings:
     llm_timeout: float = float(_env("LLM_TIMEOUT", "60"))
 
     # Retrieval
+    # NOTE: this branch ships the demo regression — top_k default is 1 (was 4). The eval
+    # gate catches the resulting recall@k drop; see the failing CI check on this PR.
     embed_model: str = _env("EMBED_MODEL", "all-MiniLM-L6-v2")  # wired into the store
-    top_k: int = int(_env("TOP_K", "4"))
+    top_k: int = int(_env("TOP_K", "1"))
     chunk_chars: int = int(_env("CHUNK_CHARS", "700"))
     chunk_overlap_sentences: int = int(_env("CHUNK_OVERLAP_SENTENCES", "1"))
 
