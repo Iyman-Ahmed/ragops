@@ -7,5 +7,6 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = ["B008"]  # FastAPI uses function calls (Depends/Body) in argument defaults
 
 [tool.pytest.ini_options]
+pythonpath = ["."]          # make `app`/`eval` importable under bare `pytest` (as CI runs it)
 filterwarnings = ["ignore::DeprecationWarning"]
 addopts = "-q"
