@@ -53,7 +53,7 @@ model — collapses `recall@1` from **0.84 → 0.24**; see the calibration table
 | Claim | Where it lives | What it actually does |
 |---|---|---|
 | **Eval-driven development** | `eval/retrieval_gate.py` | Deterministic recall@1 / recall@k gate; exits 1 on regression |
-| **I evaluate my own eval** | `eval/calibrate.py`, [docs/gate_calibration.md](docs/gate_calibration.md) | Measures the gate's TPR/FPR against 6 seeded regressions |
+| **I evaluate my own eval** | `eval/calibrate.py`, [docs/gate_calibration.md](docs/gate_calibration.md) | Measures the gate's TPR/FPR on six scenarios: four seeded retrieval regressions and two controls |
 | **Statistical honesty** | `eval/metrics.py` | Gates on the **Wilson lower bound**, not a point estimate |
 | **CI/CD** | `.github/workflows/ci.yml` | ruff + pytest + docker build + the eval gate, on every PR |
 | **Experiment tracking** | `eval/tracking.py` (MLflow) | Logs params + metrics per run; `mlflow ui` shows the trend |
@@ -114,7 +114,7 @@ regressions and measures whether the gate fires — a true/false-positive rate f
 itself. Current result (regenerate with `make calibrate`):
 
 <!-- see docs/gate_calibration.md for the generated table -->
-**TPR 4/4 = 100% · FPR 0/2 = 0%.** The gate fires on the embedding swap, embedding
+**Detected 4/4 seeded retrieval regressions; triggered on 0/2 controls.** These six controlled scenarios are a functional check, not an estimate of production TPR/FPR. The benchmark contains 42 questions over 10 documents; performance beyond this set is unmeasured. The gate fires on the embedding swap, embedding
 collapse, corpus truncation, and low top_k; it correctly stays green on a clean run and on
 over-fragmented chunks (whose harm is generation-side, not retrieval — an honest scope
 boundary). Full table: [docs/gate_calibration.md](docs/gate_calibration.md).
