@@ -74,8 +74,8 @@ def main() -> int:
         "gate (L1) fires on retrieval-quality regressions and stays green otherwise.",
         "Four seeded regressions and two controls are a small functional check, not an estimate of production error rates.",
         "",
-        f"**True-positive rate: {tp}/{should_fire_n} = {tpr:.0%}**  ·  "
-        f"**False-positive rate: {fp}/{should_not_n} = {fpr:.0%}**",
+        f"**Seeded regressions detected: {tp}/{should_fire_n}**  ·  "
+        f"**Control triggers: {fp}/{should_not_n}**",
         "",
         f"Thresholds: `{THRESHOLDS}`",
         "",
